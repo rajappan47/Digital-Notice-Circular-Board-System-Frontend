@@ -7,6 +7,7 @@ import CreateNotice from "./CreateNotice";
 import ViewNotices from "./ViewNotice";
 import UpdateNotice from "./UpdateNotices";
 import StaffDashboard from "./StaffDashboard";
+import AdminAcknowledgement from "./AdminAcknowledgement";
 
 function App() {
 
@@ -26,6 +27,7 @@ function App() {
       <Route path="/admin/create" element={<CreateNotice />} />
 
       <Route path="/admin/view" element={<ViewNotices role="admin" />} />
+      <Route path="/admin/viewack" element={ <AdminAcknowledgement/>}/>
 
       {/* ✅ FIXED */}
       <Route path="/admin/update/:id" element={<UpdateNotice />} />

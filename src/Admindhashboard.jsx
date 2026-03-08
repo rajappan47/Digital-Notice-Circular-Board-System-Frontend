@@ -44,6 +44,12 @@ export default function AdminDashboard() {
           >
             📄 View Notices
           </button>
+          <button
+            className="btn btn-outline-primary w-100 mb-3"
+            onClick={() => navigate("/admin/viewack")}
+          >
+            📄 Acknowledgements
+          </button>
 
         </div>
 

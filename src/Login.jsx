@@ -11,57 +11,83 @@ export default function Login({ role }) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-
   const handleSubmit = async (e) => {
+
     e.preventDefault();
 
     setLoading(true);
     setMessage("");
 
-    // API based on role
     const url =
       role === "admin"
         ? "http://localhost:8080/Admin/login"
         : "http://localhost:8080/staff/login";
 
-   try {
+    try {
 
-  const response = await axios.post(url, {
-    email,
-    password,
-  });
+      const response = await axios.post(url, {
+        email,
+        password
+      });
 
-  if (response.data === "valid") {
+      if (response.data === "valid") {
 
-    setMessage("✅ Login Successful");
-    localStorage.setItem("role", role);
+        localStorage.setItem("role", role);
+        localStorage.setItem("email", email);
 
-    if (role === "admin") {
-      navigate("/admindashboard");
-    } else {
-      navigate("/staffdashboard");
+        setMessage("✅ Login Successful");
+
+        // staff login → fetch user details
+        if (role === "staff") {
+
+          const userResponse = await axios.get(
+            `http://localhost:8080/staff/getByEmail/${email}`
+          );
+
+          const user = userResponse.data;
+
+          if (!user) {
+            setMessage("❌ User details not found");
+            return;
+          }
+
+          // store user object
+          localStorage.setItem("user", JSON.stringify(user));
+
+          navigate("/staffdashboard");
+
+        } else {
+
+          navigate("/admindashboard");
+
+        }
+
+      } else {
+
+        setMessage("❌ Invalid Email or Password");
+
+      }
+
+    } catch (error) {
+
+      console.error(error);
+
+      if (error.response) {
+        setMessage("❌ Invalid Email or Password");
+      } else {
+        setMessage("❌ Server not reachable");
+      }
+
+    } finally {
+
+      setLoading(false);
+
     }
 
-  } else {
-    setMessage("❌ Invalid Email or Password");
-  }
-
-} catch (error)
- {
-
-   if (error.response) {
-    setMessage("❌ Invalid Email or Password");
-  } else {
-    setMessage("❌ Server not reachable");
-  }
-
-} finally {
-  setLoading(false);
-}
   };
 
-
   return (
+
     <div className="container d-flex justify-content-center align-items-center min-vh-100">
 
       <div className="card shadow p-4" style={{ width: "360px" }}>
@@ -73,7 +99,6 @@ export default function Login({ role }) {
         <p className="text-center text-muted mb-3">
           Please login to continue
         </p>
-
 
         <form onSubmit={handleSubmit}>
 
@@ -91,7 +116,6 @@ export default function Login({ role }) {
             />
           </div>
 
-
           {/* Password */}
           <div className="mb-3">
             <label className="form-label">Password</label>
@@ -106,20 +130,16 @@ export default function Login({ role }) {
             />
           </div>
 
-
-          {/* Button */}
+          {/* Login Button */}
           <button
             type="submit"
             className="btn btn-success w-100"
             disabled={loading}
           >
-
             {loading ? "Logging in..." : "Login"}
-
           </button>
 
         </form>
-
 
         {/* Message */}
         {message && (
@@ -131,5 +151,6 @@ export default function Login({ role }) {
       </div>
 
     </div>
+
   );
 }

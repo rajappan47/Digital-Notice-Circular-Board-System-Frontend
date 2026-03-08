@@ -1,142 +1,145 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
-
-
-// Department List
-const departments = [
-  { id: 1, name: "Administration" },
-  { id: 2, name: "Revenue" },
-  { id: 3, name: "Accounts & Finance" },
-  { id: 4, name: "Human Resources" },
-  { id: 5, name: "Engineering / Public Works" },
-  { id: 6, name: "Water Supply" },
-  { id: 7, name: "Solid Waste Management" },
-  { id: 8, name: "Health & Sanitation" },
-  { id: 9, name: "Town Planning" },
-  { id: 10, name: "IT & E-Governance" },
-];
 
 export default function StaffDashboard() {
 
   const [notices, setNotices] = useState([]);
-  const [selectedDept, setSelectedDept] = useState("");
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
 
+  // get logged-in user
+  const user = JSON.parse(localStorage.getItem("user"));
 
+  // safety check
+  if (!user) {
+    return <h3>User not logged in</h3>;
+  }
+
+  const departmentId = user.department_id;
+  const userId = user.id;
+
+  // load notices once
   useEffect(() => {
-    loadNotices();
-  }, []);
+
+    const fetchNotices = async () => {
+
+      try {
+
+        const response = await axios.get(
+          `http://localhost:8080/notices/department/${departmentId}`
+        );
+
+        setNotices(response.data);
+
+      } catch (error) {
+
+        console.error("Error loading notices", error);
+
+      } finally {
+
+        setLoading(false);
+
+      }
+
+    };
+
+    if (departmentId) {
+      fetchNotices();
+    }
+
+  }, [departmentId]);
 
 
-  const loadNotices = () => {
 
-    axios.get("http://localhost:8080/noticesbyall")
-      .then(res => setNotices(res.data))
-      .catch(err => console.log(err));
+  // acknowledge notice
+  const acknowledgeNotice = async (noticeId) => {
+
+    try {
+
+      const response = await axios.post(
+        "http://localhost:8080/notice/acknowledge",
+        null,
+        {
+          params: {
+            notice_id: noticeId,
+            user_id: userId
+          }
+        }
+      );
+
+      alert(response.data);
+
+    } catch (error) {
+
+      console.error("Error acknowledging notice", error);
+      alert("Failed to acknowledge notice");
+
+    }
+
   };
 
 
-  // Filter Notices
-  const filteredNotices = selectedDept
-    ? notices.filter(n => n.department_id === parseInt(selectedDept))
-    : notices;
+  if (loading) {
+    return <h3 className="text-center mt-4">Loading notices...</h3>;
+  }
 
 
   return (
-    <div className="container-fluid min-vh-100 bg-light">
 
-      {/* Navbar */}
-      <nav className="navbar navbar-dark bg-primary px-4">
-        <span className="navbar-brand fw-bold">
-          Staff Dashboard
-        </span>
+    <div className="container mt-4">
 
-        <button
-          className="btn btn-outline-light"
-          onClick={() => navigate("/")}
-        >
-          Logout
-        </button>
-      </nav>
+      <h2 className="mb-4 text-primary">Department Notices</h2>
 
+      {notices.length === 0 ? (
 
-      <div className="container mt-4">
-
-        <h3 className="text-primary mb-3">
-          📢 Available Notices
-        </h3>
-
-
-        {/* Department Filter */}
-        <div className="mb-4 col-md-4">
-
-          <label className="form-label fw-bold">
-            Filter by Department
-          </label>
-
-          <select
-            className="form-select"
-            value={selectedDept}
-            onChange={(e) => setSelectedDept(e.target.value)}
-          >
-
-            <option value="">All Departments</option>
-
-            {departments.map(dep => (
-              <option key={dep.id} value={dep.id}>
-                {dep.name}
-              </option>
-            ))}
-
-          </select>
-
+        <div className="alert alert-warning">
+          No notices available
         </div>
 
+      ) : (
 
-        {/* Notice Cards */}
         <div className="row">
 
-          {filteredNotices.map((n) => (
+          {notices.map((notice) => (
 
-            <div className="col-md-4 mb-4" key={n.notice_id}>
+            <div className="col-md-4 mb-4" key={notice.notice_id}>
 
-              <div className="card shadow h-100 border-0">
+              <div className="card shadow">
 
-                <div className="card-body d-flex flex-column">
+                <div className="card-body">
 
-                  <span className="badge bg-primary mb-2">
-                    Dept #{n.department_id}
-                  </span>
-
-                  <h5 className="fw-bold">
-                    Notice #{n.notice_id}
+                  <h5 className="card-title">
+                    Notice #{notice.notice_id}
                   </h5>
 
+                  <p>{notice.content}</p>
+
                   <p className="text-muted">
-                    {n.content}
+                    Posting Date: {notice.posting_date}
                   </p>
 
-                  <small>
-                    📅 Posted: {n.posting_date}
-                  </small>
+                  <p className="text-muted">
+                    Expiry Date: {notice.expiry_date}
+                  </p>
 
-                  <small className="mb-2">
-                    ⏳ Expiry: {n.expiry_date}
-                  </small>
+                  {notice.notice_file && (
 
-
-                  {/* View File */}
-                  {n.notice_file && (
                     <a
-                      href={`http://localhost:8080/notices/file/${n.notice_id}`}
+                      href={`http://localhost:8080/notices/file/${notice.notice_id}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="btn btn-outline-primary btn-sm mt-2"
+                      className="btn btn-outline-primary btn-sm me-2"
                     >
-                      📄 View File
+                      View File
                     </a>
+
                   )}
+
+                  <button
+                    className="btn btn-success btn-sm"
+                    onClick={() => acknowledgeNotice(notice.notice_id)}
+                  >
+                    Acknowledge
+                  </button>
 
                 </div>
 
@@ -148,8 +151,10 @@ export default function StaffDashboard() {
 
         </div>
 
-      </div>
+      )}
 
     </div>
+
   );
+
 }
